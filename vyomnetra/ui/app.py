@@ -64,6 +64,7 @@ class MainWindow(QMainWindow):
         # Refresh initial data tables
         self.refresh_catalogue_table()
         self.refresh_health_table()
+        self.refresh_pass_table()
         
         logger.info("VYOMNETRA main window initialized successfully.")
 
@@ -185,31 +186,30 @@ class MainWindow(QMainWindow):
         return widget
 
     def _create_pass_panel(self) -> QWidget:
-        """Topocentric Pass Prediction Panel."""
+        """Topocentric Pass Prediction Panel (IMPLEMENTED IN PHASE 3)."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        layout.addWidget(create_not_implemented_banner("Phase 3: Visibility, Passes & Observation Log"))
-        
         header_layout = QHBoxLayout()
-        header = QLabel("<h3>Ground Site Pass Predictor & Observation Log</h3>")
+        header = QLabel("<h3>Ground Site Pass Predictor & Observation Log (Live Engine)</h3>")
         header.setStyleSheet("color: #38bdf8;")
         header_layout.addWidget(header)
         
         header_layout.addStretch()
         header_layout.addWidget(QLabel("Target Ground Site:"))
         
-        site_combo = QComboBox()
+        self.site_combo = QComboBox()
         for site_key, site in settings.sites.items():
-            site_combo.addItem(f"{site.name} ({site.latitude_deg:.2f}°N, {site.longitude_deg:.2f}°E)", site_key)
-        header_layout.addWidget(site_combo)
+            self.site_combo.addItem(f"{site.name} ({site.latitude_deg:.2f}°N, {site.longitude_deg:.2f}°E)", site_key)
+        self.site_combo.currentIndexChanged.connect(self.refresh_pass_table)
+        header_layout.addWidget(self.site_combo)
         
         layout.addLayout(header_layout)
         
-        table = QTableWidget(0, 7)
-        table.setHorizontalHeaderLabels(["Satellite", "Rise Time (UTC)", "Max El Time", "Max El (°)", "Set Time", "Est. Mag", "Naked Eye Visible?"])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        layout.addWidget(table)
+        self.pass_table = QTableWidget(0, 7)
+        self.pass_table.setHorizontalHeaderLabels(["Satellite", "Rise Time (UTC)", "Max El Time", "Max El (°)", "Set Time", "Est. Mag", "Naked Eye Visible?"])
+        self.pass_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.pass_table)
         
         return widget
 
@@ -351,6 +351,41 @@ class MainWindow(QMainWindow):
             self.catalogue_table.setItem(row_idx, 4, QTableWidgetItem(f"{sat.inclination_deg:.2f}°"))
             self.catalogue_table.setItem(row_idx, 5, QTableWidgetItem(f"{period_min:.2f} m"))
             self.catalogue_table.setItem(row_idx, 6, QTableWidgetItem(str(sat.fetch_id)))
+
+    def refresh_pass_table(self):
+        """Calculates and renders predicted passes for satellites in SQLite."""
+        from datetime import datetime, timezone
+        from vyomnetra.visibility.passes import PassPredictor
+        
+        site_key = self.site_combo.currentData() or "hazaribagh"
+        site = settings.sites.get(site_key, settings.sites["hazaribagh"])
+        
+        satellites = self.db_manager.get_all_satellites()
+        if not satellites:
+            self.pass_table.setRowCount(0)
+            return
+
+        predictor = PassPredictor()
+        now_dt = datetime.now(timezone.utc)
+        all_passes = []
+
+        for sat in satellites[:3]:  # Predict top 3 satellites for fast UI rendering
+            passes = predictor.predict_passes(sat, site, now_dt, duration_hours=24.0, min_elevation_deg=10.0, step_seconds=60.0)
+            all_passes.extend(passes)
+
+        # Sort by AOS time
+        all_passes.sort(key=lambda p: p.aos_dt)
+
+        self.pass_table.setRowCount(len(all_passes))
+        for row_idx, p in enumerate(all_passes):
+            vis_label = "YES 🌟" if p.is_naked_eye_visible else ("Sunlit ☀️" if p.is_sunlit_at_tca else "Eclipsed 🌑")
+            self.pass_table.setItem(row_idx, 0, QTableWidgetItem(f"{p.sat_name} (#{p.norad_id})"))
+            self.pass_table.setItem(row_idx, 1, QTableWidgetItem(p.aos_dt.strftime("%Y-%m-%d %H:%M:%S")))
+            self.pass_table.setItem(row_idx, 2, QTableWidgetItem(p.tca_dt.strftime("%H:%M:%S")))
+            self.pass_table.setItem(row_idx, 3, QTableWidgetItem(f"{p.max_elevation_deg:.1f}°"))
+            self.pass_table.setItem(row_idx, 4, QTableWidgetItem(p.los_dt.strftime("%H:%M:%S")))
+            self.pass_table.setItem(row_idx, 5, QTableWidgetItem(f"m={p.est_magnitude:.1f}"))
+            self.pass_table.setItem(row_idx, 6, QTableWidgetItem(vis_label))
 
     def refresh_health_table(self):
         """Populates Data Health table from SQLite fetch logs."""
