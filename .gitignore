@@ -1,0 +1,26 @@
+# Python & Virtual Environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# User data & databases
+*.db
+*.sqlite
+*.jsonl
+vyomnetra_data/
+~/.local/share/vyomnetra/
+
+# Local Environment & Secrets
+.env
+
+# Temporary Screenshots & Media Outputs
+*.png
+*.jpg
+*.mp4
+*.WebP
+*.webp
