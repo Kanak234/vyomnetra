@@ -384,7 +384,14 @@ class MainWindow(QMainWindow):
 
     def on_run_validation(self):
         """Handler for validation execution."""
-        self.status_bar.showMessage("Executing Validation Suite...")
+        from vyomnetra.propagate.validator import Tier1ValladoValidator
+        self.status_bar.showMessage("Executing Tier 1 Vallado Benchmark Suite...")
+        validator = Tier1ValladoValidator()
+        results, max_pos, max_vel, all_passed = validator.run_benchmark_suite()
+        
+        status_str = f"PASS (Pos: {max_pos:.2e} km, Vel: {max_vel:.2e} km/s)" if all_passed else f"FAIL (Pos: {max_pos:.2e} km)"
+        self.validation_tab.findChild(QTableWidget).setItem(0, 3, QTableWidgetItem(status_str))
+        self.status_bar.showMessage(f"Tier 1 Benchmark Complete: {status_str}")
 
 
 def launch_app():
