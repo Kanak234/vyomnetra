@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vyomnetra"
+version = "0.1.0"
+description = "VYOMNETRA — Offline-First Desktop Space Situational Awareness (SSA) & Space-Science Workbench"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "sgp4>=2.27",
+    "skyfield>=1.55",
+    "astropy>=8.0.1",
+    "numpy>=2.5.2",
+    "scipy>=1.18.1",
+    "pandas>=3.0.5",
+    "PySide6>=6.11.2",
+    "pyqtgraph>=0.14.0",
+    "networkx>=3.6.1",
+    "rdflib>=7.6.0",
+    "requests>=2.34.2",
+    "pydantic>=2.13.4",
+    "python-dotenv>=1.0.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-qt>=4.4.0",
+    "pytest-cov>=5.0",
+]
+
+[project.scripts]
+vyomnetra = "vyomnetra.main:main"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra -q --import-mode=importlib"
+testpaths = ["tests"]
+pythonpath = ["."]
