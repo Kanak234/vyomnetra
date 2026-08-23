@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         self.refresh_catalogue_table()
         self.refresh_health_table()
         self.refresh_pass_table()
+        self.refresh_globe()
         
         logger.info("VYOMNETRA main window initialized successfully.")
 
@@ -119,20 +120,14 @@ class MainWindow(QMainWindow):
         main_layout.addWidget(self.tabs)
 
     def _create_globe_panel(self) -> QWidget:
-        """3D Globe View Panel."""
+        """3D Globe View Panel (IMPLEMENTED IN PHASE 4)."""
+        from vyomnetra.render.globe_widget import Globe3DWidget
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        layout.setContentsMargins(4, 4, 4, 4)
         
-        layout.addWidget(create_not_implemented_banner("Phase 4: 3D Globe & Catalogue Table"))
-        
-        header = QLabel("<h3>3D Orbital Globe & Tracking View</h3>")
-        header.setStyleSheet("color: #38bdf8;")
-        layout.addWidget(header)
-        
-        placeholder = QLabel("CesiumJS / OpenGL Globe View Host\n[25,000+ Catalogue Objects Rendering Target]")
-        placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        placeholder.setStyleSheet("background: #0f172a; border: 2px dashed #334155; border-radius: 8px; color: #64748b; font-size: 16px;")
-        layout.addWidget(placeholder)
+        self.globe_widget = Globe3DWidget(self)
+        layout.addWidget(self.globe_widget)
         
         return widget
 
@@ -351,6 +346,12 @@ class MainWindow(QMainWindow):
             self.catalogue_table.setItem(row_idx, 4, QTableWidgetItem(f"{sat.inclination_deg:.2f}°"))
             self.catalogue_table.setItem(row_idx, 5, QTableWidgetItem(f"{period_min:.2f} m"))
             self.catalogue_table.setItem(row_idx, 6, QTableWidgetItem(str(sat.fetch_id)))
+
+    def refresh_globe(self):
+        """Passes active database satellites to 3D Globe Widget."""
+        satellites = self.db_manager.get_all_satellites()
+        if hasattr(self, "globe_widget"):
+            self.globe_widget.set_satellites(satellites)
 
     def refresh_pass_table(self):
         """Calculates and renders predicted passes for satellites in SQLite."""
