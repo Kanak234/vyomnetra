@@ -5,6 +5,7 @@ to guarantee offline reproducibility and frame-conversion integrity.
 """
 
 import json
+import tomllib
 from pathlib import Path
 import pytest
 from PySide6.QtCore import Qt
@@ -17,33 +18,31 @@ from vyomnetra.ui.app import MainWindow
 
 
 def test_locked_dependency_versions():
-    """Asserts that running core calculation stack matches exact locked uv.lock versions.
+    """Asserts running runtime versions match exact versions in uv.lock.
     
-    Prevents silent minor dependency drift from breaking orbital tolerances.
+    Parses uv.lock dynamically so uv.lock remains the single source of truth.
     """
+    lock_path = Path("uv.lock")
+    assert lock_path.exists(), "uv.lock file missing! Must be committed to repo."
+    
+    with open(lock_path, "rb") as f:
+        lock_data = tomllib.load(f)
+        
+    locked_packages = {pkg["name"]: pkg["version"] for pkg in lock_data.get("package", [])}
     installed = get_installed_stack_versions()
     
-    # Exact pinned versions from uv.lock
-    expected_versions = {
-        "sgp4": "2.27",
-        "skyfield": "1.55",
-        "astropy": "8.0.1",
-        "numpy": "2.5.2",
-        "scipy": "1.18.1",
-        "pandas": "3.0.5",
-        "PySide6": "6.11.2",
-        "pyqtgraph": "0.14.0",
-        "networkx": "3.6.1",
-        "rdflib": "7.6.0",
-        "requests": "2.34.2",
-        "pytest": "9.1.1",
-        "pydantic": "2.13.4",
-    }
+    packages_to_check = [
+        "sgp4", "skyfield", "astropy", "numpy", "scipy",
+        "pandas", "pyside6", "pyqtgraph", "networkx",
+        "rdflib", "requests", "pytest", "pydantic"
+    ]
     
-    for pkg, expected_ver in expected_versions.items():
-        assert installed[pkg] == expected_ver, (
-            f"Dependency drift detected! Package '{pkg}' is running version '{installed[pkg]}', "
-            f"expected locked version '{expected_ver}'."
+    for pkg in packages_to_check:
+        assert pkg in locked_packages, f"Package '{pkg}' not found in uv.lock!"
+        expected_version = locked_packages[pkg]
+        assert installed[pkg] == expected_version, (
+            f"Dependency version mismatch! Package '{pkg}' is running version '{installed[pkg]}', "
+            f"expected locked version '{expected_version}' from uv.lock."
         )
 
 
