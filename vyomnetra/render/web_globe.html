@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VYOMNETRA 3D Orbital Globe (Offline WebGL Engine)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: #090d16;
+      font-family: monospace;
+    }
+    #gl-canvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+    }
+    #hud-overlay {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      color: #38bdf8;
+      background: rgba(15, 23, 42, 0.90);
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 100;
+    }
+    .val-highlight {
+      color: #10b981;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud-overlay">
+    <div><strong>VYOMNETRA 3D GLOBE ENGINE (Offline WebGL)</strong></div>
+    <div>Catalogue Objects: <span id="sat-count" class="val-highlight">25,000</span></div>
+    <div>Rendering Frame Rate: <span id="fps-display" class="val-highlight">60.0 FPS</span></div>
+    <div>Target Ground Site: <span style="color:#f59e0b;">Hazaribagh (23.9968°N, 85.3647°E)</span></div>
+  </div>
+  <canvas id="gl-canvas"></canvas>
+
+  <script>
+    // Offline WebGL 3D Globe & 25,000 Satellite Point Cloud Renderer
+    const canvas = document.getElementById('gl-canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+    let numObjects = 25000;
+    let frameCount = 0, lastFpsTime = performance.now();
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    if (!gl) {
+      document.getElementById('fps-display').innerText = "WebGL Unavailable";
+    } else {
+      // Shaders
+      const vsSource = `
+        attribute vec3 aPosition;
+        attribute vec4 aColor;
+        uniform mat4 uMatrix;
+        varying vec4 vColor;
+        void main() {
+          gl_Position = uMatrix * vec4(aPosition, 1.0);
+          gl_PointSize = 2.5;
+          vColor = aColor;
+        }
+      `;
+
+      const fsSource = `
+        precision mediump float;
+        varying vec4 vColor;
+        void main() {
+          gl_FragColor = vColor;
+        }
+      `;
+
+      function createShader(gl, type, source) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        return shader;
+      }
+
+      const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+      const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+      const program = gl.createProgram();
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      gl.useProgram(program);
+
+      // Generate 25,000 3D ECEF position points & colors
+      const positions = new Float32Array(numObjects * 3);
+      const colors = new Float32Array(numObjects * 4);
+
+      let pIdx = 0, cIdx = 0;
+      for (let i = 0; i < numObjects; i++) {
+        const u = Math.random() * Math.PI * 2;
+        const v = Math.acos(2 * Math.random() - 1);
+        let r = 7000.0;
+        if (i < 18750) {
+          r = 6678.0 + Math.random() * 1000.0;
+          colors[cIdx] = 0.22; colors[cIdx+1] = 0.74; colors[cIdx+2] = 0.97; colors[cIdx+3] = 0.85;
+        } else if (i < 22500) {
+          r = 16378.0 + Math.random() * 10000.0;
+          colors[cIdx] = 0.96; colors[cIdx+1] = 0.62; colors[cIdx+2] = 0.04; colors[cIdx+3] = 0.85;
+        } else {
+          r = 42164.0 + (Math.random() - 0.5) * 500.0;
+          colors[cIdx] = 0.93; colors[cIdx+1] = 0.28; colors[cIdx+2] = 0.60; colors[cIdx+3] = 0.90;
+        }
+
+        positions[pIdx] = (r * Math.sin(v) * Math.cos(u)) / 45000.0;
+        positions[pIdx+1] = (r * Math.sin(v) * Math.sin(u)) / 45000.0;
+        positions[pIdx+2] = (r * Math.cos(v)) / 45000.0;
+
+        pIdx += 3;
+        cIdx += 4;
+      }
+
+      // Buffers
+      const posBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+      const aPos = gl.getAttribLocation(program, "aPosition");
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
+
+      const colorBuffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+      const aColor = gl.getAttribLocation(program, "aColor");
+      gl.enableVertexAttribArray(aColor);
+      gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
+
+      const uMatrix = gl.getUniformLocation(program, "uMatrix");
+
+      let rotAngle = 0.0;
+
+      function renderFrame() {
+        rotAngle += 0.005;
+        const cosA = Math.cos(rotAngle);
+        const sinA = Math.sin(rotAngle);
+
+        // Simple orthogonal perspective matrix
+        const matrix = new Float32Array([
+          cosA,  0, sinA, 0,
+          0,     1, 0,    0,
+          -sinA, 0, cosA, 0,
+          0,     0, 0,    1
+        ]);
+
+        gl.uniformMatrix4fv(uMatrix, false, matrix);
+        gl.clearColor(0.035, 0.051, 0.086, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.drawArrays(gl.POINTS, 0, numObjects);
+
+        frameCount++;
+        const now = performance.now();
+        if (now - lastFpsTime >= 1000) {
+          const fps = (frameCount * 1000) / (now - lastFpsTime);
+          document.getElementById('fps-display').innerText = fps.toFixed(1) + " FPS";
+          frameCount = 0;
+          lastFpsTime = now;
+        }
+
+        requestAnimationFrame(renderFrame);
+      }
+
+      renderFrame();
+    }
+  </script>
+</body>
+</html>
