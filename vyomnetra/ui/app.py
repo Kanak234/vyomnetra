@@ -26,6 +26,9 @@ from PySide6.QtWidgets import (
 from vyomnetra.config import settings
 from vyomnetra.ui.theme import DARK_STYLESHEET
 from vyomnetra.utils.logger import get_logger, log_data_fetch
+from vyomnetra.ingest.db import DatabaseManager
+from vyomnetra.ingest.adapters import CelesTrakAdapter
+from vyomnetra.ingest.health import get_data_health_summary
 
 logger = get_logger("vyomnetra.ui")
 
@@ -46,6 +49,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
+        self.db_manager = DatabaseManager()
         self.setWindowTitle(f"{settings.app_name} v{settings.app_version} — Space Situational Awareness Workbench")
         self.resize(1280, 800)
         
@@ -56,6 +60,10 @@ class MainWindow(QMainWindow):
         self._init_menu_bar()
         self._init_ui()
         self._init_status_bar()
+        
+        # Refresh initial data tables
+        self.refresh_catalogue_table()
+        self.refresh_health_table()
         
         logger.info("VYOMNETRA main window initialized successfully.")
 
@@ -69,7 +77,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(exit_action)
         
         data_menu = menu_bar.addMenu("&Data")
-        fetch_action = QAction("&Fetch GP Catalogue", self)
+        fetch_action = QAction("&Fetch CelesTrak Catalogue", self)
         fetch_action.triggered.connect(self.on_fetch_catalogue)
         data_menu.addAction(fetch_action)
         
@@ -128,20 +136,28 @@ class MainWindow(QMainWindow):
         return widget
 
     def _create_catalogue_panel(self) -> QWidget:
-        """Satellite Catalogue Table Panel."""
+        """Satellite Catalogue Table Panel (IMPLEMENTED IN PHASE 1)."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        layout.addWidget(create_not_implemented_banner("Phase 1: Ingest & Provenance Database"))
-        
-        header = QLabel("<h3>NORAD GP Catalogue</h3>")
+        header_layout = QHBoxLayout()
+        header = QLabel("<h3>NORAD GP Satellite Catalogue (Live Database)</h3>")
         header.setStyleSheet("color: #38bdf8;")
-        layout.addWidget(header)
+        header_layout.addWidget(header)
         
-        table = QTableWidget(0, 6)
-        table.setHorizontalHeaderLabels(["NORAD ID", "Name", "Epoch (UTC)", "Inclination (°)", "Period (min)", "Provenance Hash"])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        layout.addWidget(table)
+        header_layout.addStretch()
+        fetch_btn = QPushButton("🔄 Refresh / Fetch GP Data")
+        fetch_btn.clicked.connect(self.on_fetch_catalogue)
+        header_layout.addWidget(fetch_btn)
+        
+        layout.addLayout(header_layout)
+        
+        self.catalogue_table = QTableWidget(0, 7)
+        self.catalogue_table.setHorizontalHeaderLabels([
+            "NORAD ID", "Name", "Designator", "Epoch (UTC)", "Inclination (°)", "Period (min)", "Fetch ID"
+        ])
+        self.catalogue_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.catalogue_table)
         
         return widget
 
@@ -254,20 +270,20 @@ class MainWindow(QMainWindow):
         return widget
 
     def _create_health_panel(self) -> QWidget:
-        """Data Health and Audit Logs Panel."""
+        """Data Health and Audit Logs Panel (IMPLEMENTED IN PHASE 1)."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
-        layout.addWidget(create_not_implemented_banner("Phase 1: Data Acquisition & Health Monitor"))
-        
-        header = QLabel("<h3>Data Source Health & Lineage Audit Log</h3>")
+        header = QLabel("<h3>Data Source Health & Lineage Audit Log (Live Engine)</h3>")
         header.setStyleSheet("color: #38bdf8;")
         layout.addWidget(header)
         
-        table = QTableWidget(0, 5)
-        table.setHorizontalHeaderLabels(["Timestamp (UTC)", "Source Name", "URL", "Record Count", "SHA-256 Hash"])
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        layout.addWidget(table)
+        self.health_table = QTableWidget(0, 8)
+        self.health_table.setHorizontalHeaderLabels([
+            "Source Name", "URL", "Last Fetch (UTC)", "Staleness (hrs)", "HTTP Status", "Records", "Rejected", "Hash"
+        ])
+        self.health_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+        layout.addWidget(self.health_table)
         
         return widget
 
@@ -312,13 +328,59 @@ class MainWindow(QMainWindow):
         """Status bar showing system status."""
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("VYOMNETRA Ready | Offline-First Engine Active | DB: vyomnetra.db")
+        self.refresh_status_bar()
+
+    def refresh_status_bar(self):
+        """Refreshes status bar with database satellite count."""
+        sat_count = len(self.db_manager.get_all_satellites())
+        self.status_bar.showMessage(
+            f"VYOMNETRA Ready | Database: {sat_count} satellites ingested | DB: {settings.get_db_path().name}"
+        )
+
+    def refresh_catalogue_table(self):
+        """Loads satellite records from SQLite into Catalogue table."""
+        satellites = self.db_manager.get_all_satellites()
+        self.catalogue_table.setRowCount(len(satellites))
+        
+        for row_idx, sat in enumerate(satellites[:1000]):  # Display top 1000 for fast UI rendering
+            period_min = round(1440.0 / sat.mean_motion, 2) if sat.mean_motion > 0 else 0.0
+            self.catalogue_table.setItem(row_idx, 0, QTableWidgetItem(str(sat.norad_id)))
+            self.catalogue_table.setItem(row_idx, 1, QTableWidgetItem(sat.name))
+            self.catalogue_table.setItem(row_idx, 2, QTableWidgetItem(sat.international_designator or ""))
+            self.catalogue_table.setItem(row_idx, 3, QTableWidgetItem(sat.epoch_utc))
+            self.catalogue_table.setItem(row_idx, 4, QTableWidgetItem(f"{sat.inclination_deg:.2f}°"))
+            self.catalogue_table.setItem(row_idx, 5, QTableWidgetItem(f"{period_min:.2f} m"))
+            self.catalogue_table.setItem(row_idx, 6, QTableWidgetItem(str(sat.fetch_id)))
+
+    def refresh_health_table(self):
+        """Populates Data Health table from SQLite fetch logs."""
+        health_data = get_data_health_summary(self.db_manager)
+        self.health_table.setRowCount(len(health_data))
+        
+        for row_idx, item in enumerate(health_data):
+            self.health_table.setItem(row_idx, 0, QTableWidgetItem(str(item["source_name"])))
+            self.health_table.setItem(row_idx, 1, QTableWidgetItem(str(item["source_url"])))
+            self.health_table.setItem(row_idx, 2, QTableWidgetItem(str(item["last_fetch_utc"])))
+            self.health_table.setItem(row_idx, 3, QTableWidgetItem(f"{item['staleness_hours']} hrs"))
+            self.health_table.setItem(row_idx, 4, QTableWidgetItem(str(item["http_status"])))
+            self.health_table.setItem(row_idx, 5, QTableWidgetItem(str(item["record_count"])))
+            self.health_table.setItem(row_idx, 6, QTableWidgetItem(str(item["rejected_count"])))
+            hash_short = str(item["content_hash"])[:8] + "..." if item["content_hash"] else ""
+            self.health_table.setItem(row_idx, 7, QTableWidgetItem(hash_short))
 
     def on_fetch_catalogue(self):
         """Handler for fetching GP Catalogue."""
         self.status_bar.showMessage("Fetching CelesTrak GP catalogue...")
-        log_data_fetch("CelesTrak GP", settings.celestrak_gp_url, 0, "dummy_hash", "FETCHING")
-        self.status_bar.showMessage("Catalogue fetch initiated.")
+        adapter = CelesTrakAdapter(self.db_manager)
+        try:
+            fetch_log, satellites = adapter.fetch()
+            self.refresh_catalogue_table()
+            self.refresh_health_table()
+            self.refresh_status_bar()
+            logger.info(f"UI Fetch complete: Ingested {len(satellites)} satellites under fetch ID {fetch_log.id}.")
+        except Exception as e:
+            logger.error(f"UI Catalogue fetch error: {e}")
+            self.status_bar.showMessage(f"Fetch failed: {e}")
 
     def on_run_validation(self):
         """Handler for validation execution."""
