@@ -12,7 +12,7 @@ from sgp4.api import WGS72, jday
 from vyomnetra.config import GroundSite, settings
 from vyomnetra.ingest.models import SatelliteRecord
 from vyomnetra.propagate.engine import SGP4Engine
-from vyomnetra.propagate.frames import EARTH_RADIUS_KM, teme_to_ecef, ecef_to_topocentric
+from vyomnetra.propagate.frames import EARTH_RADIUS_KM, teme_to_ecef, ecef_to_topocentric, geodetic_to_ecef
 from vyomnetra.utils.logger import get_logger
 
 logger = get_logger("vyomnetra.render.globe_engine")
@@ -31,17 +31,8 @@ def get_earth_sphere_mesh(radius: float = EARTH_RADIUS_KM, num_lat: int = 30, nu
 
 
 def get_ground_site_ecef(site: GroundSite) -> np.ndarray:
-    """Converts ground site geodetic (lat, lon, alt) to 3D ECEF position (km)."""
-    lat_rad = np.radians(site.latitude_deg)
-    lon_rad = np.radians(site.longitude_deg)
-    alt_km = site.elevation_m / 1000.0
-    
-    r = EARTH_RADIUS_KM + alt_km
-    x = r * np.cos(lat_rad) * np.cos(lon_rad)
-    y = r * np.cos(lat_rad) * np.sin(lon_rad)
-    z = r * np.sin(lat_rad)
-    
-    return np.array([x, y, z], dtype=np.float64)
+    """Converts ground site geodetic (lat, lon, alt) to 3D ECEF position (km) using WGS-84 ellipsoid."""
+    return geodetic_to_ecef(site.latitude_deg, site.longitude_deg, site.elevation_m)
 
 
 def get_ground_site_coverage_ring(site: GroundSite, min_el_deg: float = 10.0, num_pts: int = 72) -> np.ndarray:

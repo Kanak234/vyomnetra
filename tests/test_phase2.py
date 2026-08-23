@@ -101,3 +101,18 @@ def test_tier_1_vallado_benchmark_suite():
     assert all_passed is True
     assert max_pos_err <= validator.pos_tol_km
     assert max_vel_err <= validator.vel_tol_kms
+
+
+def test_wgs84_hazaribagh_ecef_accuracy():
+    """Asserts WGS-84 ECEF conversion for Hazaribagh ground station to within 1 metre tolerance."""
+    site = settings.sites["hazaribagh"]
+    # WGS-84 exact position: lat=23.9968°N, lon=85.3647°E, elev=610.0m
+    # Expected ECEF (km): X=471.19236257, Y=5811.57826021, Z=2578.20771181, |r|=6375.234829 km
+    site_ecef = geodetic_to_ecef(site.latitude_deg, site.longitude_deg, site.elevation_m)
+    
+    expected_ecef = np.array([471.19236257, 5811.57826021, 2578.20771181], dtype=np.float64)
+    # 1 metre = 0.001 km
+    assert np.allclose(site_ecef, expected_ecef, atol=1e-3)
+    
+    norm_km = np.linalg.norm(site_ecef)
+    assert np.isclose(norm_km, 6375.234829, atol=1e-3)
