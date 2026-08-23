@@ -1,8 +1,8 @@
 """PySide6 Application Shell for VYOMNETRA."""
 
 import sys
-from PySide6.QtCore import Qt, QSize
-from PySide6.QtGui import QIcon, QAction
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -28,6 +28,17 @@ from vyomnetra.ui.theme import DARK_STYLESHEET
 from vyomnetra.utils.logger import get_logger, log_data_fetch
 
 logger = get_logger("vyomnetra.ui")
+
+
+def create_not_implemented_banner(phase_name: str) -> QLabel:
+    """Helper creating a prominent 'NOT IMPLEMENTED — Phase N' badge."""
+    banner = QLabel(f"🚧 NOT IMPLEMENTED — {phase_name}")
+    banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    banner.setStyleSheet(
+        "background-color: #312e81; color: #a5b4fc; border: 1px solid #6366f1; "
+        "padding: 8px; border-radius: 6px; font-weight: bold; font-size: 14px;"
+    )
+    return banner
 
 
 class MainWindow(QMainWindow):
@@ -103,6 +114,8 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
+        layout.addWidget(create_not_implemented_banner("Phase 4: 3D Globe & Catalogue Table"))
+        
         header = QLabel("<h3>3D Orbital Globe & Tracking View</h3>")
         header.setStyleSheet("color: #38bdf8;")
         layout.addWidget(header)
@@ -119,6 +132,8 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
+        layout.addWidget(create_not_implemented_banner("Phase 1: Ingest & Provenance Database"))
+        
         header = QLabel("<h3>NORAD GP Catalogue</h3>")
         header.setStyleSheet("color: #38bdf8;")
         layout.addWidget(header)
@@ -134,6 +149,8 @@ class MainWindow(QMainWindow):
         """Close Approach Screening Panel."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        
+        layout.addWidget(create_not_implemented_banner("Phase 5: Conjunction Close-Approach Screening"))
         
         header = QLabel("<h3>Conjunction Assessment & Close Approaches</h3>")
         header.setStyleSheet("color: #38bdf8;")
@@ -155,6 +172,8 @@ class MainWindow(QMainWindow):
         """Topocentric Pass Prediction Panel."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        
+        layout.addWidget(create_not_implemented_banner("Phase 3: Visibility, Passes & Observation Log"))
         
         header_layout = QHBoxLayout()
         header = QLabel("<h3>Ground Site Pass Predictor & Observation Log</h3>")
@@ -182,6 +201,8 @@ class MainWindow(QMainWindow):
         """Natural Language Assistant & CoT Orchestrator Panel."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        
+        layout.addWidget(create_not_implemented_banner("Phase 7 & 8: Knowledge Graph, NL Query & CoT Planner"))
         
         header = QLabel("<h3>Knowledge Graph & Chain-of-Thought Query Engine</h3>")
         header.setStyleSheet("color: #38bdf8;")
@@ -219,6 +240,8 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
+        layout.addWidget(create_not_implemented_banner("Phase 9: Space-Science Light Curve Pipeline"))
+        
         header = QLabel("<h3>Space Science Workbench — Light Curve & Transit Search</h3>")
         header.setStyleSheet("color: #38bdf8;")
         layout.addWidget(header)
@@ -235,6 +258,8 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
+        layout.addWidget(create_not_implemented_banner("Phase 1: Data Acquisition & Health Monitor"))
+        
         header = QLabel("<h3>Data Source Health & Lineage Audit Log</h3>")
         header.setStyleSheet("color: #38bdf8;")
         layout.addWidget(header)
@@ -250,6 +275,8 @@ class MainWindow(QMainWindow):
         """Validation Harness Panel."""
         widget = QWidget()
         layout = QVBoxLayout(widget)
+        
+        layout.addWidget(create_not_implemented_banner("Phase 2 & Section 5: Multi-Tier Validation Harness"))
         
         header = QLabel("<h3>5-Tier Verification & Benchmark Suite</h3>")
         header.setStyleSheet("color: #38bdf8;")

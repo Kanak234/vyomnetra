@@ -12,15 +12,15 @@ def get_installed_stack_versions() -> Dict[str, str]:
     """Returns exact installed package versions for reproducibility assurance."""
     packages = [
         "sgp4", "skyfield", "astropy", "numpy", "scipy",
-        "pandas", "PySide6", "pyqtgraph", "networkx",
+        "pandas", "pyside6", "pyqtgraph", "networkx",
         "rdflib", "requests", "pytest", "pydantic"
     ]
     versions = {}
     for pkg in packages:
         try:
-            versions[pkg] = importlib.metadata.version(pkg)
+            versions[pkg.lower()] = importlib.metadata.version(pkg)
         except Exception:
-            versions[pkg] = "UNAVAILABLE"
+            versions[pkg.lower()] = "UNAVAILABLE"
     return versions
 
 
