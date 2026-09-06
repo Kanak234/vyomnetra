@@ -20,6 +20,16 @@ class SGP4Engine:
     def __init__(self, gravity_model=WGS72):
         self.gravity_model = gravity_model
 
+    def dt_to_jd(self, dt) -> Tuple[float, float]:
+        """Converts datetime instance to Julian Date tuple (jd, fr)."""
+        year = dt.year
+        mon = dt.month
+        day = dt.day
+        hr = dt.hour
+        minute = dt.minute
+        sec = dt.second + dt.microsecond * 1e-6
+        return jday(year, mon, day, hr, minute, sec)
+
     def create_satrec(
         self,
         tle_line1: Optional[str] = None,

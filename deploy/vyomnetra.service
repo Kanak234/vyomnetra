@@ -1,0 +1,15 @@
+[Unit]
+Description=VYOMNETRA Space Situational Awareness Platform Service
+After=network.target
+
+[Service]
+Type=simple
+User=kanak
+WorkingDirectory=/home/kanak/Desktop/asero
+ExecStart=/home/kanak/Desktop/asero/.venv/bin/uvicorn vyomnetra.api.app:app --host 0.0.0.0 --port 8000
+Restart=always
+RestartSec=5
+Environment=VYOMNETRA_ENV=production
+
+[Install]
+WantedBy=multi-user.target

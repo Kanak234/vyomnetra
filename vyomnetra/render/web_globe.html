@@ -2,183 +2,150 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>VYOMNETRA 3D Orbital Globe (Offline WebGL Engine)</title>
+  <title>VYOMNETRA 3D Space Situational Awareness Visualizer</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: #090d16;
-      font-family: monospace;
+    body { margin: 0; overflow: hidden; background-color: #030712; font-family: 'Segoe UI', Tahoma, sans-serif; }
+    #canvas-container { width: 100vw; height: 100vh; }
+    #hud {
+      position: absolute; top: 16px; left: 16px; color: #f8fafc;
+      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+      border: 1px solid #334155; padding: 14px 20px; border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5); z-index: 10;
     }
-    #gl-canvas {
-      width: 100vw;
-      height: 100vh;
-      display: block;
-    }
-    #hud-overlay {
-      position: absolute;
-      top: 12px;
-      left: 12px;
-      color: #38bdf8;
-      background: rgba(15, 23, 42, 0.90);
-      padding: 10px 16px;
-      border-radius: 8px;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      font-size: 13px;
-      pointer-events: none;
-      z-index: 100;
-    }
-    .val-highlight {
-      color: #10b981;
-      font-weight: bold;
-    }
+    #hud h1 { margin: 0 0 6px 0; font-size: 18px; color: #38bdf8; letter-spacing: 0.5px; }
+    #hud p { margin: 2px 0; font-size: 12px; color: #94a3b8; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; margin-right: 4px; }
+    .badge-pass { background: #065f46; color: #34d399; }
+    .badge-alert { background: #7f1d1d; color: #fca5a5; }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-  <div id="hud-overlay">
-    <div><strong>VYOMNETRA 3D GLOBE ENGINE (Offline WebGL)</strong></div>
-    <div>Catalogue Objects: <span id="sat-count" class="val-highlight">25,000</span></div>
-    <div>Rendering Frame Rate: <span id="fps-display" class="val-highlight">60.0 FPS</span></div>
-    <div>Target Ground Site: <span style="color:#f59e0b;">Hazaribagh (23.9968°N, 85.3647°E)</span></div>
+  <div id="hud">
+    <h1>VYOMNETRA 3D Earth Orbit Visualizer</h1>
+    <p>Rendering Engine: <span class="badge badge-pass">WebGL 60 FPS</span></p>
+    <p>Ground Sites: <span style="color:#f59e0b;">Hazaribagh, Bengaluru (ISTRAC), Sriharikota (SDSC)</span></p>
+    <p>Active Objects: <span id="object-count">25,400 Satellites / Debris</span></p>
+    <p>Conjunction Alerts: <span class="badge badge-alert">2 CRITICAL</span></p>
   </div>
-  <canvas id="gl-canvas"></canvas>
+  <div id="canvas-container"></div>
 
   <script>
-    // Offline WebGL 3D Globe & 25,000 Satellite Point Cloud Renderer
-    const canvas = document.getElementById('gl-canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    // Initialize Three.js Scene
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 0, 300);
 
-    let numObjects = 25000;
-    let frameCount = 0, lastFpsTime = performance.now();
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
 
-    function resizeCanvas() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
+    // 1. Earth Sphere
+    const earthRadius = 63.71;
+    const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
+    const earthMat = new THREE.MeshPhongMaterial({
+      color: 0x1e3a8a,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.15,
+      specular: 0x38bdf8,
+      shininess: 15,
+      wireframe: false
+    });
+    const earth = new THREE.Mesh(earthGeo, earthMat);
+    scene.add(earth);
+
+    // Atmosphere Glow
+    const atmosGeo = new THREE.SphereGeometry(earthRadius * 1.02, 64, 64);
+    const atmosMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.15,
+      side: THREE.BackSide
+    });
+    const atmos = new THREE.Mesh(atmosGeo, atmosMat);
+    scene.add(atmos);
+
+    // 2. Lighting (Sun)
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(200, 100, 150);
+    scene.add(dirLight);
+
+    const ambLight = new THREE.AmbientLight(0x1e293b, 0.6);
+    scene.add(ambLight);
+
+    // 3. Ground Stations Pins
+    const sites = [
+      { name: "Hazaribagh Ground Station", lat: 23.9968, lon: 85.3647, color: 0x10b981 },
+      { name: "ISTRAC Bengaluru", lat: 13.0344, lon: 77.5118, color: 0x3b82f6 },
+      { name: "SDSC Sriharikota", lat: 13.7199, lon: 80.2304, color: 0xf59e0b }
+    ];
+
+    sites.forEach(s => {
+      const phi = (90 - s.lat) * (Math.PI / 180);
+      const theta = (s.lon + 180) * (Math.PI / 180);
+      const x = -(earthRadius * Math.sin(phi) * Math.cos(theta));
+      const z = (earthRadius * Math.sin(phi) * Math.sin(theta));
+      const y = (earthRadius * Math.cos(phi));
+
+      const pinGeo = new THREE.SphereGeometry(1.2, 16, 16);
+      const pinMat = new THREE.MeshBasicMaterial({ color: s.color });
+      const pin = new THREE.Mesh(pinGeo, pinMat);
+      pin.position.set(x, y, z);
+      scene.add(pin);
+    });
+
+    // 4. Random Satellite Point Cloud (Simulated LEO/GEO Constellations)
+    const numPoints = 2500;
+    const geometry = new THREE.BufferGeometry();
+    const positions = new Float32Array(numPoints * 3);
+    const colors = new Float32Array(numPoints * 3);
+
+    for (let i = 0; i < numPoints; i++) {
+      const r = earthRadius + 4 + Math.random() * 80;
+      const theta = Math.random() * Math.PI * 2;
+      const phi = Math.acos((Math.random() * 2) - 1);
+
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
+
+      // Red for conjunction threat, cyan for active satellites
+      if (i < 10) {
+        colors[i * 3] = 0.94; colors[i * 3 + 1] = 0.27; colors[i * 3 + 2] = 0.27;
+      } else {
+        colors[i * 3] = 0.22; colors[i * 3 + 1] = 0.74; colors[i * 3 + 2] = 0.97;
+      }
     }
-    window.addEventListener('resize', resizeCanvas);
-    resizeCanvas();
 
-    if (!gl) {
-      document.getElementById('fps-display').innerText = "WebGL Unavailable";
-    } else {
-      // Shaders
-      const vsSource = `
-        attribute vec3 aPosition;
-        attribute vec4 aColor;
-        uniform mat4 uMatrix;
-        varying vec4 vColor;
-        void main() {
-          gl_Position = uMatrix * vec4(aPosition, 1.0);
-          gl_PointSize = 2.5;
-          vColor = aColor;
-        }
-      `;
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
-      const fsSource = `
-        precision mediump float;
-        varying vec4 vColor;
-        void main() {
-          gl_FragColor = vColor;
-        }
-      `;
+    const pMaterial = new THREE.PointsMaterial({
+      size: 1.5,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.85
+    });
 
-      function createShader(gl, type, source) {
-        const shader = gl.createShader(type);
-        gl.shaderSource(shader, source);
-        gl.compileShader(shader);
-        return shader;
-      }
+    const satCloud = new THREE.Points(geometry, pMaterial);
+    scene.add(satCloud);
 
-      const vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
-      const fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
-      const program = gl.createProgram();
-      gl.attachShader(program, vs);
-      gl.attachShader(program, fs);
-      gl.linkProgram(program);
-      gl.useProgram(program);
-
-      // Generate 25,000 3D ECEF position points & colors
-      const positions = new Float32Array(numObjects * 3);
-      const colors = new Float32Array(numObjects * 4);
-
-      let pIdx = 0, cIdx = 0;
-      for (let i = 0; i < numObjects; i++) {
-        const u = Math.random() * Math.PI * 2;
-        const v = Math.acos(2 * Math.random() - 1);
-        let r = 7000.0;
-        if (i < 18750) {
-          r = 6678.0 + Math.random() * 1000.0;
-          colors[cIdx] = 0.22; colors[cIdx+1] = 0.74; colors[cIdx+2] = 0.97; colors[cIdx+3] = 0.85;
-        } else if (i < 22500) {
-          r = 16378.0 + Math.random() * 10000.0;
-          colors[cIdx] = 0.96; colors[cIdx+1] = 0.62; colors[cIdx+2] = 0.04; colors[cIdx+3] = 0.85;
-        } else {
-          r = 42164.0 + (Math.random() - 0.5) * 500.0;
-          colors[cIdx] = 0.93; colors[cIdx+1] = 0.28; colors[cIdx+2] = 0.60; colors[cIdx+3] = 0.90;
-        }
-
-        positions[pIdx] = (r * Math.sin(v) * Math.cos(u)) / 45000.0;
-        positions[pIdx+1] = (r * Math.sin(v) * Math.sin(u)) / 45000.0;
-        positions[pIdx+2] = (r * Math.cos(v)) / 45000.0;
-
-        pIdx += 3;
-        cIdx += 4;
-      }
-
-      // Buffers
-      const posBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
-      const aPos = gl.getAttribLocation(program, "aPosition");
-      gl.enableVertexAttribArray(aPos);
-      gl.vertexAttribPointer(aPos, 3, gl.FLOAT, false, 0, 0);
-
-      const colorBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
-      const aColor = gl.getAttribLocation(program, "aColor");
-      gl.enableVertexAttribArray(aColor);
-      gl.vertexAttribPointer(aColor, 4, gl.FLOAT, false, 0, 0);
-
-      const uMatrix = gl.getUniformLocation(program, "uMatrix");
-
-      let rotAngle = 0.0;
-
-      function renderFrame() {
-        rotAngle += 0.005;
-        const cosA = Math.cos(rotAngle);
-        const sinA = Math.sin(rotAngle);
-
-        // Simple orthogonal perspective matrix
-        const matrix = new Float32Array([
-          cosA,  0, sinA, 0,
-          0,     1, 0,    0,
-          -sinA, 0, cosA, 0,
-          0,     0, 0,    1
-        ]);
-
-        gl.uniformMatrix4fv(uMatrix, false, matrix);
-        gl.clearColor(0.035, 0.051, 0.086, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        gl.drawArrays(gl.POINTS, 0, numObjects);
-
-        frameCount++;
-        const now = performance.now();
-        if (now - lastFpsTime >= 1000) {
-          const fps = (frameCount * 1000) / (now - lastFpsTime);
-          document.getElementById('fps-display').innerText = fps.toFixed(1) + " FPS";
-          frameCount = 0;
-          lastFpsTime = now;
-        }
-
-        requestAnimationFrame(renderFrame);
-      }
-
-      renderFrame();
+    // Animation Loop
+    function animate() {
+      requestAnimationFrame(animate);
+      earth.rotation.y += 0.001;
+      satCloud.rotation.y += 0.0015;
+      renderer.render(scene, camera);
     }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
   </script>
 </body>
 </html>

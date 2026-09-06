@@ -1,4 +1,6 @@
-"""VYOMNETRA — Desktop Space Situational Awareness & Space Science Workbench."""
+"""VYOMNETRA Space Situational Awareness Platform Package."""
 
-__version__ = "0.1.0"
-__author__ = "Vyomnetra Engineering Team"
+from vyomnetra.sdk import SSAPlatform
+
+__version__ = "1.0.0"
+__all__ = ["SSAPlatform"]

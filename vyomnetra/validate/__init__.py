@@ -1,1 +1,5 @@
-"""VYOMNETRA 5-Tier Verification Harness (Vallado benchmark, Skyfield cross-val, Horizons, Observations)."""
+"""VYOMNETRA Validation Package."""
+
+from vyomnetra.validate.harness import TierValidationSummary, MultiTierValidationHarness
+
+__all__ = ["TierValidationSummary", "MultiTierValidationHarness"]
