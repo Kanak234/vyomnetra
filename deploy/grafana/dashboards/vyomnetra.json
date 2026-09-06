@@ -1,0 +1,60 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 1,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "title": "Active Satellite Catalogue Count",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "vyomnetra_satellites_total",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "title": "Active Critical Conjunction Alerts",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "vyomnetra_alerts_active_count",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "title": "SGP4 Propagation Latency (ms)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "vyomnetra_propagation_latency_ms",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["vyomnetra", "ssa", "space"],
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "title": "VYOMNETRA SSA Operational Overview",
+  "uid": "vyomnetra-main",
+  "version": 1
+}

@@ -1,0 +1,10 @@
+# BAH Capability Module Configuration
+module_id: "custom.ssa.analytics"
+name: "Custom SSA Analytics Capability"
+version: "1.0.0"
+author: "ISRO / Aerospace Ops"
+
+settings:
+  cache_enabled: true
+  max_iterations: 100
+  logging_level: "INFO"

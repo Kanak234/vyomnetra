@@ -1,26 +1,52 @@
-# Python & Virtual Environment
-.venv/
+# Byte-compiled / optimized files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-*.egg-info/
-.pytest_cache/
-.coverage
+*.py[cod]
+*$py.class
 
-# User data & databases
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+
+# Database files
 *.db
 *.sqlite
-*.jsonl
-vyomnetra_data/
-~/.local/share/vyomnetra/
+*.sqlite3
 
-# Local Environment & Secrets
+# Distribution / packaging
+build/
+devel/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and databases
+*.log
+
+# extra safety (per push checklist)
 .env
-
-# Temporary Screenshots & Media Outputs
-*.png
-*.jpg
-*.mp4
-*.WebP
-*.webp
+.env.*
+!*.env.example
+*.pem
+*.key
+credentials*
+*.gguf
+*.pt
+*.safetensors

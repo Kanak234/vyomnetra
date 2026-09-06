@@ -99,6 +99,30 @@ def geodetic_to_ecef(lat_deg: float, lon_deg: float, elev_m: float) -> np.ndarra
     return np.array([x, y, z], dtype=np.float64)
 
 
+def ecef_to_geodetic(x: float, y: float, z: float) -> Tuple[float, float, float]:
+    """Converts ECEF position vector in km to WGS-84 latitude (deg), longitude (deg), elevation (m)."""
+    a = EARTH_RADIUS_KM
+    f = 1.0 / 298.257223563
+    e2 = 2.0 * f - f**2
+
+    r_p = np.sqrt(x**2 + y**2)
+    if r_p == 0:
+        lat = 90.0 if z > 0 else -90.0
+        return lat, 0.0, float(abs(z) - a) * 1000.0
+
+    lon_rad = np.arctan2(y, x)
+    lat_rad = np.arctan2(z, r_p * (1.0 - e2))
+
+    for _ in range(5):
+        N = a / np.sqrt(1.0 - e2 * np.sin(lat_rad)**2)
+        lat_rad = np.arctan2(z + e2 * N * np.sin(lat_rad), r_p)
+
+    N = a / np.sqrt(1.0 - e2 * np.sin(lat_rad)**2)
+    alt_km = r_p / np.cos(lat_rad) - N
+
+    return float(np.degrees(lat_rad)), float(np.degrees(lon_rad)), float(alt_km * 1000.0)
+
+
 def ecef_to_topocentric(
     r_sat_ecef: np.ndarray,
     site: GroundSite

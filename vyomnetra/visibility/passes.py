@@ -50,6 +50,11 @@ class PassEvent:
         )
 
 
+# Dataclass aliases for API compatibility
+GroundPass = PassEvent
+PredictedPass = PassEvent
+
+
 class PassPredictor:
     """Predicts topocentric passes over ground sites."""
 

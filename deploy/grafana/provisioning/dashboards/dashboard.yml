@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'vyomnetra-dashboards'
+    orgId: 1
+    folder: 'VYOMNETRA SSA'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
