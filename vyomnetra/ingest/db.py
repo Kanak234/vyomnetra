@@ -218,6 +218,13 @@ class DatabaseManager:
             """, rows)
             conn.commit()
 
+    def get_rejected_records(self, limit: int = 100) -> List[Tuple[str, str]]:
+        """Returns recent rejected record lines and reasons."""
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT raw_line, reason FROM rejected_records ORDER BY id DESC LIMIT ?;", (limit,))
+            return [(r["raw_line"], r["reason"]) for r in cursor.fetchall()]
+
     def save_conjunction_alerts(self, alerts: List[Any]):
         """Saves conjunction alert records into SQLite."""
         if not alerts:
