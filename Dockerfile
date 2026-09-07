@@ -1,5 +1,5 @@
 # VYOMNETRA Space Situational Awareness Production Dockerfile
-FROM python:3.11-slim as builder
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
 
