@@ -52,6 +52,14 @@ class Globe3DWebEngineCanvas(QWebEngineView):
         js_code = f"if (window.updateSatellitePositions) {{ updateSatellitePositions({pos_flat_list}); }}"
         self.page().runJavaScript(js_code)
 
+    def closeEvent(self, event):
+        """Clean up web engine page upon widget closure to avoid dangling profile references."""
+        try:
+            self.setPage(None)
+        except Exception:
+            pass
+        super().closeEvent(event)
+
 
 class Globe3DWidget(QWidget):
     """PySide6 Container Widget holding QWebEngineView Globe Canvas and Playback Controls."""
@@ -122,6 +130,16 @@ class Globe3DWidget(QWidget):
         from datetime import timedelta
         self.current_dt += timedelta(seconds=30)
         self.epoch_label.setText(f"UTC: {self.current_dt.strftime('%Y-%m-%d %H:%M:%S')}")
+
+    def closeEvent(self, event):
+        """Clean up timer and child web engine canvas upon closure."""
+        try:
+            self.timer.stop()
+            if hasattr(self, 'canvas') and self.canvas is not None:
+                self.canvas.close()
+        except Exception:
+            pass
+        super().closeEvent(event)
 
 
 # Aliases for backward compatibility

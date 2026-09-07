@@ -137,3 +137,6 @@ def test_pytest_qt_headless_app_smoke(qapp, qtbot):
     assert "🧪 Validation Harness" in tab_names[7]
     
     assert window.statusBar().currentMessage().startswith("VYOMNETRA Ready")
+    window.close()
+    window.deleteLater()
+    qapp.processEvents()
