@@ -13,8 +13,12 @@ f. Visual capture of PySide6 Data Health & Catalogue UI panels.
 import sys
 import os
 import time
-import requests
 from pathlib import Path
+import requests
+
+# Ensure repository root is in sys.path for direct script execution
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from PySide6.QtCore import QEventLoop, QTimer
 from PySide6.QtWidgets import QApplication
 
