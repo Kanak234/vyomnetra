@@ -4,6 +4,7 @@ Renders 3D Earth sphere mesh, solar terminator curve, ground station markers (Ha
 and 25,000+ satellite catalogue position points interactively at 60 FPS using QWebEngineView & WebGL.
 """
 
+import os
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import List, Optional
@@ -104,12 +105,16 @@ class Globe3DWidget(QWidget):
         self.epoch_label = QLabel(f"UTC: {self.current_dt.strftime('%Y-%m-%d %H:%M:%S')}")
         self.epoch_label.setStyleSheet("color: #38bdf8; font-weight: bold; font-family: monospace;")
         ctrl_layout.addWidget(self.epoch_label)
-
         layout.addLayout(ctrl_layout)
 
-        # QWebEngineView WebGL Canvas Widget
-        self.canvas = Globe3DWebEngineCanvas(self)
-        layout.addWidget(self.canvas)
+        # QWebEngineView WebGL Canvas Widget (uses offscreen placeholder when running headless)
+        if os.environ.get("QT_QPA_PLATFORM") == "offscreen":
+            self.canvas = QLabel("3D Globe Canvas (Offscreen Headless Mode)")
+            self.canvas.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            layout.addWidget(self.canvas)
+        else:
+            self.canvas = Globe3DWebEngineCanvas(self)
+            layout.addWidget(self.canvas)
 
     def set_satellites(self, satellites: List[SatelliteRecord]):
         """Sets active satellites to display on globe."""
