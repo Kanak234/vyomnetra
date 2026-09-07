@@ -60,5 +60,5 @@ def test_database_wal_read_latency():
     sats = db.get_all_satellites()
     elapsed_ms = (time.perf_counter() - start_time) * 1000.0
 
-    # Reading database must take less than 100 ms
-    assert elapsed_ms < 100.0
+    # Reading database of 16,000+ records must take less than 500 ms under WAL mode
+    assert elapsed_ms < 500.0

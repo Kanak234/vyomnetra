@@ -699,6 +699,15 @@ class MainWindow(QMainWindow):
 
         self.status_bar.showMessage("All 5 System Validation Tiers Executed.")
 
+    def closeEvent(self, event):
+        """Clean up child widgets, web engine pages, and timers upon window close."""
+        try:
+            if hasattr(self, 'globe_widget') and self.globe_widget is not None:
+                self.globe_widget.close()
+        except Exception:
+            pass
+        super().closeEvent(event)
+
 
 def launch_app():
     """Main application launcher."""
