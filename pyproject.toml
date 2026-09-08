@@ -46,6 +46,14 @@ dev = [
     "httpx2",
 ]
 
+# Load and soak tooling. locustfile.py imports locust and
+# scripts/soak_test.py imports psutil, both at module scope; neither was
+# declared anywhere, so those scripts failed on a clean environment.
+perf = [
+    "locust>=2.20",
+    "psutil>=5.9",
+]
+
 [project.scripts]
 vyomnetra = "vyomnetra.main:main"
 
