@@ -2,7 +2,7 @@ name: VYOMNETRA CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, prod-hardening ]
   pull_request:
     branches: [ main, master ]
 
@@ -53,13 +53,25 @@ jobs:
         run: |
           uv run python scripts/verify_ingest.py
 
-      - name: Run Full Test Suite & Coverage
+      - name: Run Full Test Suite & Coverage (>=80%)
         env:
           PYTHONPATH: .
         run: |
-          uv run pytest --verbose --cov=vyomnetra
+          uv run pytest --verbose --cov=vyomnetra --cov-report=term-missing --cov-fail-under=80
+
+      - name: Verify API Health & Readiness Probes
+        env:
+          PYTHONPATH: .
+        run: |
+          uv run python -c "from vyomnetra.api.app import app; from fastapi.testclient import TestClient; c = TestClient(app); r = c.get('/health'); assert r.status_code == 200, r.text; print('Health check passed:', r.json())"
 
       - name: Build Docker Container
         run: |
           docker build -t vyomnetra-ssa:latest .
 
+      - name: Container Healthcheck Smoke Test
+        run: |
+          docker run -d -p 8000:8000 --name vyom-smoke vyomnetra-ssa:latest
+          sleep 5
+          docker exec vyom-smoke curl -f http://localhost:8000/health
+          docker stop vyom-smoke && docker rm vyom-smoke
