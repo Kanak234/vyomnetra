@@ -8,6 +8,8 @@ from pydantic import BaseModel, Field
 import json
 import asyncio
 import jwt
+import os
+
 
 from vyomnetra.config import settings
 from vyomnetra.ingest.db import DatabaseManager
@@ -20,9 +22,10 @@ from vyomnetra.utils.logger import get_logger
 
 logger = get_logger("vyomnetra.api")
 sec_manager = SecurityPipelineManager()
-JWT_SECRET = "VYOMNETRA_JWT_SECRET_KEY_2026"
+JWT_SECRET = os.environ.get("VYOMNETRA_JWT_SECRET", "VYOMNETRA_JWT_SECRET_KEY_2026")
 
 app = FastAPI(
+
     title="VYOMNETRA SSA Platform API",
     description="Enterprise REST API, WebSockets & Prometheus Observability for Space Situational Awareness.",
     version=settings.app_version,

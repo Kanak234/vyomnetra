@@ -4,6 +4,24 @@ VYOMNETRA implements defense-in-depth cybersecurity mechanisms to protect orbita
 
 ---
 
+## Supported Versions
+
+| Version | Supported          |
+| ------- | ------------------ |
+| 1.0.x   | :white_check_mark: |
+| < 1.0   | :x:                |
+
+## Reporting a Vulnerability
+
+If you discover a security vulnerability in VYOMNETRA:
+1. **Do NOT** open a public issue.
+2. Submit a security advisory privately via GitHub Security Advisories or contact the repository maintainer.
+3. Include reproducible test steps, affected endpoints, and sample payloads.
+
+Reports will be acknowledged within 48 hours and investigated promptly.
+
+---
+
 ## 1. Cryptographic HMAC Data Signatures
 - All analytical payload exports and audit log entries generate an HMAC-SHA256 signature using a secret server key (`VYOMNETRA_HMAC_SECRET`).
 - Verification fails if any field, TLE parameter, or threat score is altered in transit.

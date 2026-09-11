@@ -1,6 +1,11 @@
 # 🚀 VYOMNETRA — Space Situational Awareness (SSA) Platform
 
+[![CI/CD](https://github.com/Kanak234/vyomnetra/actions/workflows/ci.yml/badge.svg)](https://github.com/Kanak234/vyomnetra/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/Kanak234/vyomnetra/actions/workflows/codeql.yml/badge.svg)](https://github.com/Kanak234/vyomnetra/actions/workflows/codeql.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
 **VYOMNETRA** is a production-grade Space Situational Awareness (SSA) platform built using Google Antigravity. It provides high-precision orbital mechanics, automated close-approach conjunction screening (Foster 2D $P_c$), multi-site topocentric pass prediction, satellite maneuver/RPO anomaly detection, space weather decay modeling, natural language agentic reasoning, and complete Bharatiya Antariksh Hackathon (BAH) problem statement execution.
+
 
 ---
 

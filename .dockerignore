@@ -1,0 +1,14 @@
+.git
+.github
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.coverage
+.pytest_cache
+.ruff_cache
+tests
+vyomnetra_*.png
+deploy
+locustfile.py
